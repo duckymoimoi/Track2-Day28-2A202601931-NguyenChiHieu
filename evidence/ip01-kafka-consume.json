@@ -1,0 +1,33 @@
+{
+  "topic": "data.raw",
+  "key": "doc-ip02-airflow",
+  "partition": 2,
+  "offset": 0,
+  "headers": {
+    "traceparent": "00-cac247b4ef3c4840db5155e1f7536829-866224d8d0dab5bc-01",
+    "idempotency-key": "doc-ip02-airflow",
+    "schema_version": "1"
+  },
+  "trace_id": "cac247b4ef3c4840db5155e1f7536829",
+  "value": {
+    "schema_version": "1",
+    "event_id": "e8972546e2c947b0ad3ac6d9b2b1c8f6",
+    "idempotency_key": "doc:doc-ip02-airflow:9b7e8bc4f2409294439202f5d734c323",
+    "entity_id": "doc-ip02-airflow",
+    "occurred_at": "2026-09-03T08:12:57.695695Z",
+    "producer": "lab28-api",
+    "traceparent": "00-cac247b4ef3c4840db5155e1f7536829-67582686b1aa37b5-01",
+    "payload": {
+      "kind": "document",
+      "doc_id": "doc-ip02-airflow",
+      "title": "IP02 — Airflow điều phối đường ống dữ liệu",
+      "text": "Airflow 3 chịu trách nhiệm điều phối luồng từ Kafka xuống Delta. DAG chạy theo lịch, đọc lô sự kiện từ data.raw, gọi job Spark để ghi vào lakehouse, rồi phát một asset event trên asset lab28://delta/feedback. Asset event là tín hiệu cho các DAG phía sau biết dữ liệu mới đã sẵn sàng, thay vì phải đoán bằng cách hẹn giờ. Tiến trình phục vụ không chứa mã điều phối: Airflow chạy trong image riêng của nó.",
+      "locale": "vi",
+      "tags": [
+        "ip02",
+        "airflow",
+        "orchestration"
+      ]
+    }
+  }
+}

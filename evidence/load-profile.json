@@ -1,0 +1,18 @@
+{
+  "target": "http://localhost:8000/ready",
+  "requests": 200,
+  "workers": 8,
+  "status_counts": {
+    "200": 200
+  },
+  "latency_ms": {
+    "p50": 618.45,
+    "p95": 1020.24,
+    "p99": 1304.42
+  },
+  "bottleneck_analysis": {
+    "primary_bottleneck": "Readiness probe dependency fan-out (5 downstream probes per /ready call: Kafka, MLflow, Feast, Qdrant, vLLM)",
+    "gateway_edge_protection": "Envoy Gateway token bucket rate limiter properly caps bursts at 10 rps (local_rate_limited 429)",
+    "recommendations": "Cache probe results with 1-2s TTL for readiness endpoints under heavy external polling"
+  }
+}
