@@ -62,7 +62,7 @@
       "name": "Model → vLLM / SGLang serving",
       "owner": "team-serving",
       "status": "not_ready",
-      "detail": "unreachable: ConnectError",
+      "detail": "not a verifiable vLLM server: unreachable: ConnectError",
       "readiness_check": "reliability.inference_endpoint"
     },
     {

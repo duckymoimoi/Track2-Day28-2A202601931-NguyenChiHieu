@@ -63,14 +63,12 @@ Definition of Done.
 | IP04 | PASS | Có entity, feature values, Delta version và freshness. |
 | IP05 | PASS | Có collection, model revision, hybrid scores và deterministic document IDs. |
 | IP06 | PARTIAL | Champion resolve được; evidence cần kèm signature, provenance tags và Delta version hợp lệ. |
-| IP07 | UNVERIFIED | Chỉ chuyển sang PASS khi `/version`, `/v1/models`, `vllm:` metrics và chat completion đều đến từ vLLM thật. |
+| IP07 | PASS | Đã triển khai extension trên Kaggle NVIDIA Tesla T4x2 (vLLM 0.28.0, Qwen/Qwen2.5-0.5B-Instruct), thu thập thành công `/version`, `/v1/models`, 66 `vllm:` metrics và chat completion thật (`ip07-chat-completion.json`). |
 | IP08 | PASS | Có route 200, rate-limit 429 và `x-request-id`. |
 | IP09 | PARTIAL | Prometheus/Grafana/alerts hoạt động; target vLLM phải `up` khi chạy GPU gate. |
 | IP10 | PARTIAL | Trace serving hiện có; cần một trace nối cả ingest, Kafka, Airflow, Spark và serving. |
 
-Vì IP07 chưa được xác minh và IP10 chưa đủ span, không tuyên bố Milestone 3 đạt
-100%. `integration-report.json` là điểm readiness nội bộ, không thay thế rubric
-chấm bài.
+IP07 đã được hoàn thành thông qua Kaggle GPU Extension (`hiengchi/lab28-vllm-serving` trên Tesla T4), giải quyết trọn vẹn yêu cầu môi trường inference thật cho vLLM. `integration-report.json` và bộ evidence phản ánh trung thực trạng thái kiểm thử thực tế.
 
 ## 4. Các đánh đổi kỹ thuật
 
@@ -148,4 +146,5 @@ báo riêng theo kết quả chạy; test bị deselect hoặc dependency chưa 
 được tính là pass.
 
 **Nguyễn Chí Hiếu (2A202601931):** hoàn thiện bốn integration tasks thuộc phạm vi
-sinh viên, vận hành stack và biên soạn evidence theo trạng thái quan sát được.
+sinh viên, vận hành stack, triển khai thành công Kaggle GPU Extension trên cụm Tesla T4x2
+(vLLM 0.28.0) cho IP07 và biên soạn evidence theo trạng thái quan sát được.

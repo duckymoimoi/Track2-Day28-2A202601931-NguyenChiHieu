@@ -1,0 +1,40 @@
+{
+  "id": "chatcmpl-ab6904d2050ce80e",
+  "object": "chat.completion",
+  "created": 1788432864,
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "A modern AI platform is a software application that combines advanced machine learning algorithms, natural language processing, and other technologies to enable the development of intelligent systems with complex problem-solving capabilities.",
+        "refusal": null,
+        "annotations": null,
+        "audio": null,
+        "function_call": null,
+        "reasoning": null
+      },
+      "logprobs": null,
+      "finish_reason": "stop",
+      "stop_reason": null,
+      "token_ids": null,
+      "routed_experts": null
+    }
+  ],
+  "service_tier": null,
+  "system_fingerprint": "vllm-0.28.0-9f75e9d9",
+  "usage": {
+    "prompt_tokens": 31,
+    "total_tokens": 67,
+    "completion_tokens": 36,
+    "prompt_tokens_details": null,
+    "completion_tokens_details": null
+  },
+  "prompt_logprobs": null,
+  "prompt_token_ids": null,
+  "prompt_text": null,
+  "kv_transfer_params": null,
+  "ec_transfer_params": null,
+  "metrics": null
+}

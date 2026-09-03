@@ -1,18 +1,20 @@
 {
-  "target": "http://localhost:8000/ready",
+  "captured_at": "2026-09-03T09:32:20Z",
+  "target": "http://localhost:8080/ready",
   "requests": 200,
   "workers": 8,
   "status_counts": {
     "200": 200
   },
+  "response_status": "degraded",
   "latency_ms": {
-    "p50": 618.45,
-    "p95": 1020.24,
-    "p99": 1304.42
+    "p50": 798.05,
+    "p95": 1256.76,
+    "p99": 3042.23
   },
   "bottleneck_analysis": {
-    "primary_bottleneck": "Readiness probe dependency fan-out (5 downstream probes per /ready call: Kafka, MLflow, Feast, Qdrant, vLLM)",
-    "gateway_edge_protection": "Envoy Gateway token bucket rate limiter properly caps bursts at 10 rps (local_rate_limited 429)",
-    "recommendations": "Cache probe results with 1-2s TTL for readiness endpoints under heavy external polling"
+    "primary_bottleneck": "Readiness performs five downstream probes sequentially for every request.",
+    "gateway_observation": "The profile used Envoy on port 8080; 200 responses indicate HTTP availability, not full readiness, because the response body was degraded while vLLM was unavailable.",
+    "recommendations": "Cache dependency probe results for 1-2 seconds, keep liveness separate from readiness, and profile /api/v1/ask after the real vLLM gate passes."
   }
 }
