@@ -1,150 +1,109 @@
-# Báo cáo kỹ thuật — Day 28 Track 2
+# Day 28 Track 2 — Báo cáo kỹ thuật
 
 **Học viên:** Nguyễn Chí Hiếu  
 **Mã học viên:** 2A202601931  
 **Repository:** `Track2-Day28-2A202601931-NguyenChiHieu`
 
-## 1. Phạm vi thực hiện
+## 1. Phần thực hiện
 
-Repository ban đầu đã cung cấp kiến trúc nền, dịch vụ Docker Compose, pipeline
-Airflow/Spark, API, telemetry, manifest Kubernetes/GitOps và bộ kiểm thử. Phần
-triển khai trực tiếp của học viên tập trung vào bốn boundary trong
-`src/lab28_platform/integration_tasks.py`:
+- `event_headers`: tạo Kafka headers cho `traceparent` và `idempotency-key`.
+- `dedupe_latest`: giữ sự kiện mới nhất theo `idempotency_key`, so sánh bằng
+  `(occurred_at, event_id)` và trả kết quả theo thứ tự key xác định.
+- `feast_online_request`: tạo request đúng feature references của Feast.
+- `readiness_status`: trả `ready`, `degraded` hoặc `not_ready` theo trạng thái và
+  mức độ bắt buộc của dependency.
+- Vận hành stack, chạy validation và thu thập evidence cho các integration point.
+- Chạy Kaggle kernel version 10 để kiểm chứng IP07 bằng vLLM và GPU thật.
 
-1. Tạo Kafka headers cho `traceparent` và `idempotency-key`.
-2. Khử trùng lặp sự kiện theo `idempotency_key`, chọn bản mới nhất bằng
-   `(occurred_at, event_id)` và trả kết quả theo thứ tự xác định.
-3. Tạo request đúng contract của Feast feature service.
-4. Tổng hợp probe thành `ready`, `degraded` hoặc `not_ready` theo mức độ bắt buộc.
-
-Ngoài phần code trên, học viên vận hành stack, chạy các cổng kiểm tra và thu thập
-evidence. Báo cáo phân biệt rõ phần được hiện thực hóa với phần đã có trong
-scaffold; việc khởi chạy một service không được xem là đã tự triển khai service đó.
-
-## 2. Kiến trúc và quyền sở hữu
+## 2. Kiến trúc và ownership
 
 ```text
 Client
   │
   ▼
-Envoy Gateway ──► FastAPI
-                    ├─ ingest ─► Kafka ─► Airflow ─► Spark/Delta
-                    │                                  ├─► Feast online store
-                    │                                  └─► Qdrant index
-                    └─ ask ───► MLflow champion
-                               + Feast features
-                               + Qdrant retrieval
-                                      │
-                                      ▼
-                               grounded prompt ─► vLLM
+Envoy ─► FastAPI
+           ├─ ingest ─► Kafka ─► Airflow ─► Spark/Delta
+           │                                ├─► Feast
+           │                                └─► Qdrant
+           └─ ask ─► MLflow champion + Feast + Qdrant ─► prompt ─► vLLM
 
 Metrics ─► Prometheus ─► Grafana
-Spans   ─► OTel Collector ─► Jaeger; LangSmith là gate có credential
+Spans   ─► OTel Collector ─► Jaeger / LangSmith
 ```
 
-| Nhóm trách nhiệm | Boundary | Phần đã thực hiện/kiểm chứng |
+| Ownership | Boundary | Evidence chính |
 |---|---|---|
-| Ingestion & Orchestration | IP01–IP02 | Kafka headers, key contract, DAG run và asset event |
-| Data & ML | IP03–IP04–IP06 | Dedupe, Delta version, Feast request và MLflow alias |
-| Serving & Retrieval | IP05–IP07 | Qdrant retrieval và gate danh tính vLLM |
-| Platform & Observability | IP08–IP10 | Readiness, gateway, metrics/dashboard và trace coverage |
+| Ingestion & Orchestration | IP01–IP02 | Kafka message, trace header, DAG run, asset event |
+| Data & ML | IP03–IP04–IP06 | Delta version, Feast feature row, MLflow champion |
+| Serving & Retrieval | IP05–IP07 | Qdrant result, vLLM identity và completion |
+| Platform & Observability | IP08–IP10 | Gateway, metrics/dashboard, distributed trace |
 
-## 3. Trạng thái 10 điểm tích hợp
+## 3. Trạng thái integration point
 
-Trạng thái dưới đây dựa trên evidence đã commit, không suy diễn từ việc unit test
-đạt. `PARTIAL` nghĩa là đã có tín hiệu hoạt động nhưng artifact chưa chứng minh đủ
-Definition of Done.
-
-| IP | Trạng thái | Nhận xét |
+| IP | Trạng thái | Kết quả |
 |---|---|---|
-| IP01 | PARTIAL | Message và trace context đã có; record/header key trong evidence chưa trùng `value.idempotency_key`. |
-| IP02 | PASS | Có DAG run thành công, task states và asset events. |
-| IP03 | PARTIAL | Có Delta version/time travel; cần MERGE history và replay row-count proof. |
+| IP01 | PARTIAL | Có Kafka message và trace context; record/header key chưa trùng `value.idempotency_key`. |
+| IP02 | PASS | DAG run thành công, các task thành công và có asset events. |
+| IP03 | PARTIAL | Có Delta version và time travel; chưa có MERGE/replay row-count proof. |
 | IP04 | PASS | Có entity, feature values, Delta version và freshness. |
-| IP05 | PASS | Có collection, model revision, hybrid scores và deterministic document IDs. |
-| IP06 | PARTIAL | Champion resolve được; evidence cần kèm signature, provenance tags và Delta version hợp lệ. |
-| IP07 | PASS | Đã triển khai extension trên Kaggle NVIDIA Tesla T4x2 (vLLM 0.28.0, Qwen/Qwen2.5-0.5B-Instruct), thu thập thành công `/version`, `/v1/models`, 66 `vllm:` metrics và chat completion thật (`ip07-chat-completion.json`). |
-| IP08 | PASS | Có route 200, rate-limit 429 và `x-request-id`. |
-| IP09 | PARTIAL | Prometheus/Grafana/alerts hoạt động; target vLLM phải `up` khi chạy GPU gate. |
-| IP10 | PARTIAL | Trace serving hiện có; cần một trace nối cả ingest, Kafka, Airflow, Spark và serving. |
+| IP05 | PASS | Có hybrid result, score, document ID và embedding model revision. |
+| IP06 | PARTIAL | Champion resolve được và có signature/tags; `git_sha` trống và `delta_version` chưa hợp lệ. |
+| IP07 | PASS | Kaggle version 10 chạy trên hai Tesla T4; vLLM 0.28.0 phục vụ đúng `Qwen/Qwen3-1.7B`, có 66 `vllm:` metrics và completion trả `vLLM` với `finish_reason=stop`. |
+| IP08 | PASS | Gateway trả 200, rate limit trả 429 và cả hai có `x-request-id`. |
+| IP09 | PARTIAL | Prometheus, Grafana và alert rules hoạt động; target vLLM của stack local chưa `up`. |
+| IP10 | PARTIAL | Trace serving có đủ synchronous spans; còn thiếu ingest, Kafka, Airflow và Spark spans trên cùng trace. |
 
-IP07 đã được hoàn thành thông qua Kaggle GPU Extension (`hiengchi/lab28-vllm-serving` trên Tesla T4), giải quyết trọn vẹn yêu cầu môi trường inference thật cho vLLM. `integration-report.json` và bộ evidence phản ánh trung thực trạng thái kiểm thử thực tế.
+## 4. Trade-offs
 
-## 4. Các đánh đổi kỹ thuật
+| Quyết định | Lợi ích | Chi phí/giới hạn |
+|---|---|---|
+| Kafka thay cho ghi trực tiếp | Buffer tải, replay và tách ingestion khỏi xử lý dữ liệu | Tăng độ trễ và chi phí vận hành broker/consumer |
+| Delta MERGE theo `idempotency_key` | Replay không tạo bản ghi trùng; hỗ trợ version/time travel | Transaction log và file cũ cần retention/VACUUM |
+| Feast online store | Tra cứu feature theo entity với độ trễ ổn định | Phải materialize và giám sát freshness |
+| Qdrant hybrid retrieval | Kết hợp semantic và lexical retrieval | Tăng chi phí embedding, index và truy vấn |
+| MLflow alias `champion` | Promotion/rollback không cần rebuild image | Release phải lưu đủ model, prompt, retrieval và data provenance |
+| vLLM trên Kaggle | Kiểm chứng GPU/vLLM thật khi local không tương thích | Session có thời hạn; không phù hợp làm endpoint production |
 
-### Kafka thay cho ghi trực tiếp
+## 5. Failure và recovery
 
-Kafka thêm chi phí vận hành và một bước bất đồng bộ, đổi lại tạo buffer khi tải
-tăng và cho phép replay. Scaffold dùng record key để giữ thứ tự theo thực thể và
-`idempotency_key` trong payload làm logical identity cho Delta. Evidence hiện còn
-bất nhất giữa record key, header và payload nên chưa chứng minh trọn vẹn IP01.
+- Payload không hợp lệ được chuyển vào `data.raw.dlq` cùng thông tin lỗi.
+- Kafka offset chỉ commit sau durable processing.
+- Delta MERGE theo `idempotency_key` hỗ trợ replay không nhân bản dữ liệu.
+- Feast failure cho phép phản hồi `degraded`.
+- Qdrant hoặc vLLM failure làm dependency bắt buộc không sẵn sàng.
+- Evidence còn thiếu failure-injection record gồm before/after state, DLQ/replay
+  count, DAG run ID và Delta row count.
 
-### Delta MERGE và versioning
+## 6. Load profile
 
-MERGE theo `idempotency_key` làm cho at-least-once delivery an toàn hơn và version
-cho phép truy lại dữ liệu của một release. Chi phí là transaction log và các file
-cũ phải được quản lý bằng retention/VACUUM phù hợp.
+| Thuộc tính | Kết quả |
+|---|---:|
+| Target | `http://localhost:8080/ready` |
+| Requests | 200 |
+| Workers | 8 |
+| HTTP 200 | 200/200 |
+| P50 | 798,05 ms |
+| P95 | 1.256,76 ms |
+| P99 | 3.042,23 ms |
 
-### Feast và Qdrant là hai nhánh khác nhau
+- Response body ở trạng thái `degraded` do vLLM local không sẵn sàng.
+- `/ready` kiểm tra tuần tự năm dependency; fan-out là bottleneck chính.
+- Kết quả này không đại diện cho latency của `/api/v1/ask`.
+- Cải tiến đề xuất: cache probe 1–2 giây và profile thêm request inference thật.
 
-Feast phục vụ đặc trưng theo entity; Qdrant phục vụ tài liệu nền cho grounding.
-Hai hệ thống không phụ thuộc tuần tự vào nhau. Online materialization giảm độ trễ
-đọc nhưng tạo yêu cầu giám sát freshness; hybrid retrieval tăng chi phí index để
-cải thiện truy vấn có từ khóa/tên riêng. Chưa có benchmark chất lượng nên không
-khẳng định mức cải thiện retrieval.
+## 7. Production gaps
 
-### MLflow alias cho promotion/rollback
+| Hạng mục | Khoảng cách cần xử lý |
+|---|---|
+| Secrets | Dùng Kubernetes Secrets/secret manager và rotation |
+| Kafka/MLflow/Feast | Bổ sung HA, backup và restore testing |
+| vLLM | Capacity planning theo VRAM, context length, concurrency và queue time |
+| Kubernetes/GitOps | Cần live drift detection và rollback evidence |
+| Tracing | Nối asynchronous spans; cấu hình sampling, retention và bảo vệ dữ liệu nhạy cảm |
+| Performance | Đo `/api/v1/ask`, CPU/RAM, GPU memory, token throughput và saturation |
 
-Alias `champion` cho phép đổi release mà không rebuild image. Để rollback có thể
-tái lập, mỗi version cần lưu prompt version, model IDs, retrieval config, Delta
-version, Git SHA, signature và evaluation metrics.
-
-## 5. Sự cố và khôi phục
-
-Thiết kế có DLQ cho payload không hợp lệ, commit Kafka offset sau durable write và
-MERGE idempotent để replay không nhân bản dữ liệu. Feast là dependency có thể suy
-giảm; Qdrant và vLLM là bắt buộc trong profile production-ready.
-
-Mô tả cơ chế không thay thế bằng chứng. Hồ sơ hoàn chỉnh cần ghi lại ít nhất một
-failure injection với trạng thái trước/sau, DLQ/replay count, DAG run ID và số dòng
-Delta chứng minh không mất hoặc nhân bản dữ liệu.
-
-## 6. Kết quả kiểm thử tải
-
-Load probe gửi **200 yêu cầu với 8 worker** đến `/ready`; đây không phải 200 yêu
-cầu đồng thời và cũng chưa đại diện cho latency của `/api/v1/ask`:
-
-- P50: 798,05 ms
-- P95: 1.256,76 ms
-- P99: 3.042,23 ms
-- 200/200 phản hồi HTTP 200; body ở trạng thái `degraded` khi vLLM chưa sẵn sàng
-
-Probe đi qua Envoy và thực hiện tuần tự năm dependency checks cho mỗi request, nên
-fan-out là điểm nghẽn chính. Có thể cache kết quả probe trong 1–2 giây, nhưng cần
-giữ liveness và readiness tách biệt. P95/P99 hiện vượt 1 giây; lần đo tiếp theo
-cần bổ sung profile cho `/api/v1/ask`, CPU/RAM, GPU memory, token throughput và
-saturation sau khi vLLM sẵn sàng.
-
-## 7. Khoảng cách với production
-
-1. Secret cần chuyển sang Kubernetes Secrets hoặc secret manager và áp dụng cơ
-   chế rotation.
-2. Kafka, MLflow backend và Feast online store hiện là cấu hình đơn nút; production
-   cần HA, backup/restore và kiểm tra phục hồi.
-3. vLLM cần capacity planning theo VRAM, context length, concurrency và queue time;
-   không mặc định rằng thêm GPU sẽ tự tăng throughput.
-4. Kubernetes/GitOps hiện mới được kiểm tra tĩnh; drift detection và rollback cần
-   evidence từ một cluster chạy thật.
-5. Trace cần nối được cả asynchronous leg và có chính sách sampling/retention phù
-   hợp với dữ liệu nhạy cảm.
-
-## 8. Kiểm chứng và đóng góp cá nhân
-
-Các cổng kiểm tra nhanh đã đạt: Ruff, portability, manifest validation, 245 matrix
-checks, toàn bộ unit tests và bốn starter tests. Live integration/GPU gates được
-báo riêng theo kết quả chạy; test bị deselect hoặc dependency chưa sẵn sàng không
-được tính là pass.
+## 8. Contribution
 
 **Nguyễn Chí Hiếu (2A202601931):** hoàn thiện bốn integration tasks thuộc phạm vi
-sinh viên, vận hành stack, triển khai thành công Kaggle GPU Extension trên cụm Tesla T4x2
-(vLLM 0.28.0) cho IP07 và biên soạn evidence theo trạng thái quan sát được.
+sinh viên; vận hành stack; thu thập evidence; kiểm chứng IP07 bằng Kaggle kernel
+version 10 trên hai Tesla T4 với vLLM 0.28.0 và `Qwen/Qwen3-1.7B`.

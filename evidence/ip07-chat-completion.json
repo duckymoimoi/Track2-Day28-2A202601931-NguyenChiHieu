@@ -1,40 +1,61 @@
 {
-  "id": "chatcmpl-ab6904d2050ce80e",
-  "object": "chat.completion",
-  "created": 1788432864,
-  "model": "Qwen/Qwen2.5-0.5B-Instruct",
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "A modern AI platform is a software application that combines advanced machine learning algorithms, natural language processing, and other technologies to enable the development of intelligent systems with complex problem-solving capabilities.",
-        "refusal": null,
-        "annotations": null,
-        "audio": null,
-        "function_call": null,
-        "reasoning": null
+  "captured_at": "2026-09-04T06:23:15.893634+00:00",
+  "request": {
+    "model": "Qwen/Qwen3-1.7B",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Answer only from the supplied context."
       },
-      "logprobs": null,
-      "finish_reason": "stop",
-      "stop_reason": null,
-      "token_ids": null,
-      "routed_experts": null
+      {
+        "role": "user",
+        "content": "Context: The Lab 28 request path uses Envoy, FastAPI, MLflow, Feast, Qdrant, and a real vLLM server. Kafka, Airflow, Spark, and Delta handle ingestion.\nQuestion: Which component performs LLM inference?"
+      }
+    ],
+    "max_tokens": 96,
+    "temperature": 0,
+    "chat_template_kwargs": {
+      "enable_thinking": false
     }
-  ],
-  "service_tier": null,
-  "system_fingerprint": "vllm-0.28.0-9f75e9d9",
-  "usage": {
-    "prompt_tokens": 31,
-    "total_tokens": 67,
-    "completion_tokens": 36,
-    "prompt_tokens_details": null,
-    "completion_tokens_details": null
   },
-  "prompt_logprobs": null,
-  "prompt_token_ids": null,
-  "prompt_text": null,
-  "kv_transfer_params": null,
-  "ec_transfer_params": null,
-  "metrics": null
+  "response": {
+    "id": "chatcmpl-97a9222c85a2b1b9",
+    "object": "chat.completion",
+    "created": 1788502996,
+    "model": "Qwen/Qwen3-1.7B",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "vLLM",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "stop_reason": null,
+        "token_ids": null,
+        "routed_experts": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": "vllm-0.28.0-419cf0b3",
+    "usage": {
+      "prompt_tokens": 78,
+      "total_tokens": 82,
+      "completion_tokens": 4,
+      "prompt_tokens_details": null,
+      "completion_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "prompt_text": null,
+    "kv_transfer_params": null,
+    "ec_transfer_params": null,
+    "metrics": null
+  }
 }
